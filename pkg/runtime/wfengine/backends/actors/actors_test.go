@@ -14,14 +14,12 @@ limitations under the License.
 package actors
 
 import (
-	"fmt"
+	"context"
 	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/dapr/durabletask-go/backend/local"
 )
 
 func TestUniqueEventTimestamp(t *testing.T) {
@@ -61,13 +59,39 @@ func TestUniqueEventTimestamp(t *testing.T) {
 	})
 }
 
-func Test_callWithBackoffDoesNotRetryAmbiguousCompletion(t *testing.T) {
-	abe := &Actors{}
-	var calls int
-	err := abe.callWithBackoff(t.Context(), func() error {
-		calls++
-		return fmt.Errorf("activity task wf1/0: %w", local.ErrAmbiguousCompletion)
+func TestSwapRegCancel(t *testing.T) {
+	t.Run("a new registration ends the previous one", func(t *testing.T) {
+		abe := &Actors{}
+		ctx1, cancel1 := context.WithCancel(t.Context())
+		ctx2, cancel2 := context.WithCancel(t.Context())
+		abe.swapRegCancel(cancel1)
+		abe.swapRegCancel(cancel2)
+		require.Error(t, ctx1.Err())
+		require.NoError(t, ctx2.Err())
+		require.NoError(t, abe.Stop(t.Context()))
+		require.Error(t, ctx2.Err())
 	})
-	require.ErrorIs(t, err, local.ErrAmbiguousCompletion)
-	assert.Equal(t, 1, calls)
+
+	// A worker stream can still register the actor types after Stop has run.
+	// Nothing would cancel that registration, so its factories' background
+	// work would outlive the backend.
+	t.Run("a registration after Stop is ended at once", func(t *testing.T) {
+		abe := &Actors{}
+		require.NoError(t, abe.Stop(t.Context()))
+		ctx, cancel := context.WithCancel(t.Context())
+		abe.swapRegCancel(cancel)
+		require.Error(t, ctx.Err())
+		assert.Nil(t, abe.regCancel)
+	})
+
+	t.Run("a registration after a restart is kept", func(t *testing.T) {
+		abe := &Actors{}
+		require.NoError(t, abe.Stop(t.Context()))
+		require.NoError(t, abe.Start(t.Context()))
+		ctx, cancel := context.WithCancel(t.Context())
+		abe.swapRegCancel(cancel)
+		require.NoError(t, ctx.Err())
+		require.NoError(t, abe.Stop(t.Context()))
+		require.Error(t, ctx.Err())
+	})
 }
