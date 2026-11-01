@@ -16,19 +16,29 @@ package placement
 import (
 	"context"
 	"errors"
+<<<<<<< HEAD
+=======
+	"net"
+>>>>>>> upstream/release-1.18
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
+<<<<<<< HEAD
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
+=======
+>>>>>>> upstream/release-1.18
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/connectivity"
+	"google.golang.org/grpc/credentials/insecure"
 
 	leaderconnector "github.com/dapr/dapr/pkg/actors/internal/placement/connector/leader"
 	"github.com/dapr/dapr/pkg/actors/internal/placement/loops"
@@ -36,7 +46,11 @@ import (
 	"github.com/dapr/dapr/pkg/actors/internal/placement/loops/stream/transport"
 	tablefake "github.com/dapr/dapr/pkg/actors/table/fake"
 	healthzfake "github.com/dapr/dapr/pkg/healthz/fake"
+<<<<<<< HEAD
 	"github.com/dapr/dapr/pkg/runtime/scheduler/leadership"
+=======
+	v1pb "github.com/dapr/dapr/pkg/proto/placement/v1"
+>>>>>>> upstream/release-1.18
 	loopfake "github.com/dapr/kit/events/loop/fake"
 )
 
@@ -108,6 +122,7 @@ func TestHandleCloseStream_NotReady(t *testing.T) {
 	})
 }
 
+<<<<<<< HEAD
 type fakeConnector struct{ addr string }
 
 func (f *fakeConnector) Connect(context.Context) (*grpc.ClientConn, error) {
@@ -349,12 +364,23 @@ func TestLeaderlessSchedulerKeepsSchedulerPlacement(t *testing.T) {
 // DNS connectors do, and records each one.
 type dialConnector struct {
 	t     *testing.T
+=======
+// dialConnector dials a new connection to addr on every Connect, as the
+// static and DNS connectors do, and records each one.
+type dialConnector struct {
+	t     *testing.T
+	addr  string
+>>>>>>> upstream/release-1.18
 	mu    sync.Mutex
 	conns []*grpc.ClientConn
 }
 
 func (d *dialConnector) Connect(context.Context) (*grpc.ClientConn, error) {
+<<<<<<< HEAD
 	conn, err := grpc.NewClient("passthrough:///127.0.0.1:1",
+=======
+	conn, err := grpc.NewClient("passthrough:///"+d.addr,
+>>>>>>> upstream/release-1.18
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
@@ -368,7 +394,11 @@ func (d *dialConnector) Connect(context.Context) (*grpc.ClientConn, error) {
 	return conn, nil
 }
 
+<<<<<<< HEAD
 func (d *dialConnector) Address() string { return "127.0.0.1:1" }
+=======
+func (d *dialConnector) Address() string { return d.addr }
+>>>>>>> upstream/release-1.18
 
 // open returns the number of recorded connections which are not closed.
 func (d *dialConnector) open() int {
@@ -383,6 +413,19 @@ func (d *dialConnector) open() int {
 	return n
 }
 
+<<<<<<< HEAD
+=======
+// holdServer keeps each ReportDaprStatus stream open until the client ends it.
+type holdServer struct {
+	v1pb.UnimplementedPlacementServer
+}
+
+func (holdServer) ReportDaprStatus(stream v1pb.Placement_ReportDaprStatusServer) error {
+	<-stream.Context().Done()
+	return nil
+}
+
+>>>>>>> upstream/release-1.18
 // TestTryConnectClosesConn asserts tryConnect closes the connection when the
 // stream fails to open and when the stream ends. Every attempt dials a new
 // connection, so a connection left open keeps redialing placement.
@@ -391,6 +434,7 @@ func TestTryConnectClosesConn(t *testing.T) {
 
 	t.Run("streams which fail to open close their connections", func(t *testing.T) {
 		t.Parallel()
+<<<<<<< HEAD
 		d := &dialConnector{t: t}
 		p := &placement{
 			connector: d,
@@ -400,6 +444,16 @@ func TestTryConnectClosesConn(t *testing.T) {
 		}
 		for range 5 {
 			_, _, err := p.tryConnect(t.Context(), t.Context())
+=======
+		// Nothing listens on port 1: the dial succeeds and opening the
+		// stream fails, as when placement is down.
+		d := &dialConnector{t: t, addr: "127.0.0.1:1"}
+		p := &placement{connector: d}
+		ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+		defer cancel()
+		for range 5 {
+			_, _, err := p.tryConnect(ctx)
+>>>>>>> upstream/release-1.18
 			require.Error(t, err)
 		}
 		assert.Len(t, d.conns, 5)
@@ -408,6 +462,7 @@ func TestTryConnectClosesConn(t *testing.T) {
 
 	t.Run("ending the stream closes the connection", func(t *testing.T) {
 		t.Parallel()
+<<<<<<< HEAD
 		d := &dialConnector{t: t}
 		var streamCtx context.Context
 		p := &placement{
@@ -418,11 +473,27 @@ func TestTryConnectClosesConn(t *testing.T) {
 			},
 		}
 		_, streamCancel, err := p.tryConnect(t.Context(), t.Context())
+=======
+		lis, err := net.Listen("tcp", "127.0.0.1:0")
+		require.NoError(t, err)
+		srv := grpc.NewServer()
+		v1pb.RegisterPlacementServer(srv, holdServer{})
+		go srv.Serve(lis)
+		t.Cleanup(srv.Stop)
+
+		d := &dialConnector{t: t, addr: lis.Addr().String()}
+		p := &placement{connector: d}
+		client, streamCancel, err := p.tryConnect(t.Context())
+>>>>>>> upstream/release-1.18
 		require.NoError(t, err)
 		assert.Equal(t, 1, d.open())
 
 		streamCancel()
+<<<<<<< HEAD
 		require.ErrorIs(t, streamCtx.Err(), context.Canceled)
+=======
+		require.ErrorIs(t, client.Context().Err(), context.Canceled)
+>>>>>>> upstream/release-1.18
 		assert.Zero(t, d.open())
 	})
 }

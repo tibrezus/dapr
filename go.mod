@@ -12,10 +12,17 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0
 	github.com/cloudevents/sdk-go/v2 v2.15.2
 	github.com/coreos/go-oidc/v3 v3.17.0
+<<<<<<< HEAD
 	github.com/dapr/components-contrib v1.19.0
 	github.com/dapr/durabletask-go v0.15.1
 	github.com/dapr/kit v0.19.0
 	github.com/diagridio/go-etcd-cron v0.12.11-0.20261027123650-5a19e4812a75
+=======
+	github.com/dapr/components-contrib v1.18.7
+	github.com/dapr/durabletask-go v0.12.6
+	github.com/dapr/kit v0.18.4
+	github.com/diagridio/go-etcd-cron v0.12.10
+>>>>>>> upstream/release-1.18
 	github.com/evanphx/json-patch/v5 v5.9.0
 	github.com/go-chi/chi/v5 v5.3.2
 	github.com/go-chi/cors v1.2.1
@@ -75,7 +82,10 @@ require (
 	go.opentelemetry.io/proto/otlp v1.11.0
 	go.uber.org/automaxprocs v1.6.0
 	go.uber.org/ratelimit v0.3.0
+<<<<<<< HEAD
 	go.uber.org/zap v1.27.0
+=======
+>>>>>>> upstream/release-1.18
 	golang.org/x/crypto v0.58.0
 	golang.org/x/net v0.62.0
 	golang.org/x/oauth2 v0.36.0
@@ -486,12 +496,22 @@ require (
 	go.starlark.net v0.0.0-20230525235612-a134d8f9ddca // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
+<<<<<<< HEAD
 	golang.org/x/exp v0.0.0-20250620022241-b7579e27df2b // indirect
 	golang.org/x/image v0.45.0 // indirect
 	golang.org/x/mod v0.42.0 // indirect
 	golang.org/x/term v0.47.0 // indirect
 	golang.org/x/text v0.43.0 // indirect
 	golang.org/x/time v0.16.0 // indirect
+=======
+	go.uber.org/zap v1.27.0 // indirect
+	golang.org/x/exp v0.0.0-20250408133849-7e4ce0ab07d0 // indirect
+	golang.org/x/image v0.43.0 // indirect
+	golang.org/x/mod v0.41.0 // indirect
+	golang.org/x/term v0.47.0 // indirect
+	golang.org/x/text v0.43.0 // indirect
+	golang.org/x/time v0.14.0 // indirect
+>>>>>>> upstream/release-1.18
 	golang.org/x/tools v0.51.0 // indirect
 	golang.org/x/tools/go/packages/packagestest v0.1.1-deprecated // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect

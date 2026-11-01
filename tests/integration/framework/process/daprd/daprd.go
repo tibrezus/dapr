@@ -94,6 +94,12 @@ func New(t *testing.T, fopts ...Option) *Daprd {
 		fopt(&opts)
 	}
 
+	if opts.mode == string(modes.StandaloneMode) {
+		if f := nameResolutionConfig(t); f != "" {
+			opts.configs = append([]string{f}, opts.configs...)
+		}
+	}
+
 	dir := t.TempDir()
 	for i, file := range opts.resourceFiles {
 		require.NoError(t, os.WriteFile(filepath.Join(dir, strconv.Itoa(i)+".yaml"), []byte(file), 0o600))
@@ -558,6 +564,10 @@ func (d *Daprd) GetMetaScheduler(t assert.TestingT, ctx context.Context) *rtv1.M
 
 func (d *Daprd) GetMetaActorRuntime(t assert.TestingT, ctx context.Context) *MetadataActorRuntime {
 	return d.meta(t, ctx).ActorRuntime
+}
+
+func (d *Daprd) GetMetaEnabledFeatures(t assert.TestingT, ctx context.Context) []string {
+	return d.meta(t, ctx).EnabledFeatures
 }
 
 func (d *Daprd) GetMetaResiliencies(t assert.TestingT, ctx context.Context) []*rtv1.MetadataResiliency {
