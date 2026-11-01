@@ -566,6 +566,10 @@ func (d *Daprd) GetMetaActorRuntime(t assert.TestingT, ctx context.Context) *Met
 	return d.meta(t, ctx).ActorRuntime
 }
 
+func (d *Daprd) GetMetaEnabledFeatures(t assert.TestingT, ctx context.Context) []string {
+	return d.meta(t, ctx).EnabledFeatures
+}
+
 func (d *Daprd) GetMetaResiliencies(t assert.TestingT, ctx context.Context) []*rtv1.MetadataResiliency {
 	return d.meta(t, ctx).Resiliencies
 }

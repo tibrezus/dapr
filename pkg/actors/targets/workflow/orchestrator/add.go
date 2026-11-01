@@ -95,7 +95,34 @@ func (o *orchestrator) classifyEvent(e *backend.HistoryEvent, state *wfenginesta
 	// event types (RaiseEvent, terminate, etc.) still flow through.
 	if (isActivity || isChild) && state.HasTamperMarker() {
 		log.Debugf("Workflow actor '%s': dropping completion event for tombstoned workflow", o.actorID)
+<<<<<<< HEAD
 		return admission{err: api.ErrInstanceNotFound}
+=======
+		return api.ErrInstanceNotFound
+	}
+
+	// ackDropped acknowledges a completion this workflow will never consume,
+	// after confirming the cache it was judged on is current: a child clears
+	// its pending notification on this ack.
+	ackDropped := func(reason string, unauthorized bool) error {
+		if !fresh {
+			if err := o.confirmCachedState(ctx, state); err != nil {
+				return err
+			}
+		}
+		// The result is no longer in flight, whether this workflow consumed
+		// it or dropped it, so a completed instance's ID becomes reusable.
+		// Not for a forged one (unauthorized): the task's real result is
+		// still in flight, and releasing the guard here would let the forger
+		// recreate the instance under it. Nor for a duplicate: its first
+		// delivery already released the guard, which a later activity may
+		// hold by now.
+		if !unauthorized && reason != reasonDuplicateOfCompleted && (e.GetTaskCompleted() != nil || e.GetTaskFailed() != nil) {
+			o.activityResultAwaited.CompareAndSwap(true, false)
+		}
+		log.Debugf("Workflow actor '%s': dropping completion (sender '%s'): %s", o.actorID, sender.instanceID, reason)
+		return nil
+>>>>>>> upstream/release-1.18
 	}
 
 	// A completed parent can never consume a child completion. Ack it here
@@ -158,7 +185,11 @@ func (o *orchestrator) classifyEvent(e *backend.HistoryEvent, state *wfenginesta
 	// Drop completion events whose resolution is already in history or the
 	// inbox; otherwise an inbox redelivery (e.g. an activity actor reminder
 	// firing twice during pod migration) would pin the workflow in a replay/spin
+<<<<<<< HEAD
 	// loop. A duplicate re-drives the wake-up so an inbox row whose wake-up
+=======
+	// loop. A duplicate re-asserts the wake-up so an inbox row whose wake-up
+>>>>>>> upstream/release-1.18
 	// failed to arm is not stranded, but a completed workflow never processes
 	// its inbox again: it acks the duplicate instead (after confirming the
 	// cache), since re-arming would turn every late redelivery, thousands after
@@ -166,10 +197,17 @@ func (o *orchestrator) classifyEvent(e *backend.HistoryEvent, state *wfenginesta
 	// turn.
 	if dedup.IsDuplicateCompletion(e, state.History, state.Inbox) {
 		if runtimestate.IsCompleted(o.rstate) {
+<<<<<<< HEAD
 			return admission{reason: reasonDuplicateOfCompleted}
 		}
 		log.Debugf("Workflow actor '%s': dropping duplicate completion already in history/inbox; re-driving the wake-up", o.actorID)
 		return admission{outcome: admitDuplicate}
+=======
+			return ackDropped(reasonDuplicateOfCompleted, false)
+		}
+		log.Debugf("Workflow actor '%s': dropping duplicate completion event already present in history/inbox; re-asserting wake-up reminder so the inbox row is not stranded", o.actorID)
+		return o.assertNewEventReminder(ctx, e, state)
+>>>>>>> upstream/release-1.18
 	}
 
 	// A redelivered RaiseEvent (e.g. an AddWorkflowEvent retried under
@@ -178,10 +216,17 @@ func (o *orchestrator) classifyEvent(e *backend.HistoryEvent, state *wfenginesta
 	// (Actors.uniqueEventTimestamp) even when raced onto the same nanosecond.
 	if dedup.IsDuplicateExternalEvent(e, state.History, state.Inbox) {
 		if runtimestate.IsCompleted(o.rstate) {
+<<<<<<< HEAD
 			return admission{reason: reasonDuplicateOfCompleted}
 		}
 		log.Debugf("Workflow actor '%s': dropping duplicate external event already present in history/inbox; re-driving the wake-up so the inbox row is not stranded", o.actorID)
 		return admission{outcome: admitDuplicate}
+=======
+			return ackDropped(reasonDuplicateOfCompleted, false)
+		}
+		log.Debugf("Workflow actor '%s': dropping duplicate external event already present in history/inbox; re-asserting wake-up reminder so the inbox row is not stranded", o.actorID)
+		return o.assertNewEventReminder(ctx, e, state)
+>>>>>>> upstream/release-1.18
 	}
 
 	// A completion this history proves can never be consumed is acknowledged
@@ -297,6 +342,10 @@ func (o *orchestrator) addWorkflowEvent(ctx context.Context, e *backend.HistoryE
 	_, err := o.admitEvent(ctx, e, sender, false)
 	return err
 }
+
+// reasonDuplicateOfCompleted acks a redelivered event a completed workflow
+// already recorded.
+const reasonDuplicateOfCompleted = "it duplicates an event of the completed workflow"
 
 // verifyAndAbsorbAttestation verifies any attestation on the incoming event
 // against the signed history and Sentry trust anchors, absorbs the signer

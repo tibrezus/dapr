@@ -41,7 +41,10 @@ type connleak struct {
 func (c *connleak) Setup(t *testing.T) []framework.Option {
 	c.actors = dactors.New(t,
 		dactors.WithActorTypes("myactor"),
+<<<<<<< HEAD
 		dactors.WithPlacementService(),
+=======
+>>>>>>> upstream/release-1.18
 	)
 
 	return []framework.Option{
